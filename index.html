@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>边界感自我觉察测评</title>
+  <style>
+    :root { --border:#e5e7eb; --text:#111827; --muted:#6b7280; --bg:#f9fafb; --card:#fff; }
+    body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",Arial;
+      background:var(--bg); color:var(--text); }
+    .wrap{ max-width:900px; margin:0 auto; padding:24px; }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    h1{ font-size:22px; margin:0 0 8px; }
+    p{ margin:8px 0; line-height:1.6; color:var(--muted); }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; }
+    .btn{ border:1px solid var(--border); background:#fff; padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:700; }
+    .btn.primary{ background:#111827; color:#fff; border-color:#111827; }
+    .btn:disabled{ opacity:.5; cursor:not-allowed; }
+    .qhead{ display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    .badge{ font-size:12px; color:var(--muted); border:1px solid var(--border); padding:6px 10px; border-radius:999px; }
+    .question{ font-size:18px; font-weight:800; margin:10px 0 14px; color:var(--text); }
+    .opt{ border:1px solid var(--border); border-radius:14px; padding:12px 12px; margin:10px 0; display:flex; gap:10px; cursor:pointer; }
+    .opt:hover{ background:#fafafa; }
+    .opt input{ transform:translateY(2px); }
+    .hr{ height:1px; background:var(--border); margin:16px 0; }
+    .progress{ height:10px; background:#eef2ff; border-radius:999px; overflow:hidden; border:1px solid var(--border);}
+    .bar{ height:100%; width:0%; background:#111827; }
+    .result-grid{ display:grid; grid-template-columns:1fr; gap:12px; }
+    @media(min-width:720px){ .result-grid{ grid-template-columns:1fr 1fr; } }
+    .pill{ display:inline-block; padding:6px 10px; border-radius:999px; border:1px solid var(--border); margin-right:8px; font-size:12px; color:var(--muted); }
+    .big{ font-size:20px; font-weight:900; }
+    .small{ font-size:12px; color:var(--muted); }
+    .note{ font-size:12px; color:var(--muted); }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono"; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div id="app" class="card"></div>
+    <p id="disclaimer" class="note" style="margin-top:10px;"></p>
+  </div>
+
+<script>
+/** ========= 1) 你的数据（题库JSON + 结果文案） ========= */
+const DATA = {
+  "meta": {
+    "title": "边界感自我觉察测评",
+    "subtitle": "选择最符合你当下状态的选项（A/B/C）。本测评用于自我觉察与学习，不构成心理诊断。",
+    "disclaimer": "说明：本测评用于自我觉察与学习，不构成心理诊断或医疗建议。"
+  },
+  "types": {
+    "P": {
+      "name": "模糊型边界（Porous）",
+      "tagline": "更容易为了关系先委屈自己",
+      "summary": "你更在乎被认可、被需要、被喜欢，所以当别人提出请求或带着情绪靠近时，你可能会下意识把对方放在前面。你不是软弱，而是曾经用“更懂事、更配合”来换取安全感与连接感。",
+      "signs": [
+        "很难拒绝：先答应，之后委屈或后悔",
+        "容易被他人的情绪影响，心里反复回放",
+        "过度解释、过度道歉，常把责任揽到自己身上",
+        "付出很多，但心里会堵、会累、会怨"
+      ],
+      "actions": [
+        "把“我想一下”当作默认回复：先停2秒再答应",
+        "拒绝句模板：我理解你的需要，但这次我做不到 / 我现在不方便（不愿意），希望你理解",
+        "分清两件事：拒绝一个请求 ≠ 拒绝一个人"
+      ],
+      "nextStep": "你这一阶段最需要的边界：把“我愿意/我不愿意”说清楚，并允许自己被不理解一下。"
+    },
+    "R": {
+      "name": "僵硬型边界（Rigid）",
+      "tagline": "先保护自己，再谈关系",
+      "summary": "你可能经历过失望、被消耗或被侵犯，所以学会把门关紧：不轻易信任、不轻易求助、不轻易暴露脆弱。这是一种聪明的自我保护，只是它也可能让你错过支持与亲密。",
+      "signs": [
+        "不喜欢别人靠太近，容易觉得麻烦、想躲开",
+        "很少分享真实感受，习惯自己扛",
+        "一旦感觉被冒犯，可能快速冷掉或切断",
+        "害怕依赖，也害怕别人依赖你"
+      ],
+      "actions": [
+        "开一条小缝：从“可控的小分享”开始，而不是一下子全开放",
+        "求助练习：向最安全的人提出一个很小的请求（越小越好）",
+        "把信任做成“分级”：不是全信/全不信，而是0-10分逐步验证"
+      ],
+      "nextStep": "你这一阶段最需要的边界：不是把墙拆掉，而是在安全时允许连接发生。"
+    },
+    "H": {
+      "name": "健康型边界（Healthy）",
+      "tagline": "既照顾自己，也尊重别人",
+      "summary": "你更能清晰知道自己要什么、能承担什么、拒绝什么，并且表达时不需要用攻击或讨好来证明立场。你不是没有情绪，而是更能为自己的选择负责。",
+      "signs": [
+        "能说“不”，也能说“可以”，并且比较坦然",
+        "能共情对方，但不把对方情绪当成自己的责任",
+        "会在不同关系里调整边界强度（家人/同事/伴侣不同）",
+        "遇到冲突更倾向沟通，而不是忍/断"
+      ],
+      "actions": [
+        "复盘你的“说不”：每次成功拒绝都给自己一个肯定",
+        "边界不是一次性：允许协商、允许调整",
+        "压力来时回到自己：先问“我需要什么”，再决定怎么做"
+      ],
+      "nextStep": "你这一阶段最需要的边界：保持弹性——既能坚定，也能柔软。"
+    }
+  },
+  "scoring": { "optionToType": { "A": "P", "B": "R", "C": "H" } },
+  "tieBreak": {
+    "mode": "show_mixed",
+    "balancedThreshold": 1,
+    "labels": {
+      "PR": {
+        "name": "模糊/僵硬混合型（P/R）",
+        "summary": "你可能呈现“外硬内软”或“有时讨好、有时切断”：当你担心失去关系时会更配合，但一旦累到极限，又会突然抽离、冷掉或断联。",
+        "actions": [
+          "在“累到爆之前”就表达需求与界限",
+          "把“沉默忍耐”换成“简短表达”：我不舒服/我需要时间/我现在做不到",
+          "为自己设一个“警报线”：当疲惫到7分就先暂停"
+        ]
+      },
+      "PH": {
+        "name": "模糊/健康混合型（P/H）",
+        "summary": "你已经具备不少健康边界能力，但在某些重要关系或权威场景里，仍可能退回讨好或过度承担。",
+        "actions": [
+          "找出最容易触发你委屈自己的场景，做“延迟回应+少解释”练习",
+          "把“我可以”改成“我愿意”：愿意才答应",
+          "每周至少一次：为自己优先做一个小决定"
+        ]
+      },
+      "RH": {
+        "name": "僵硬/健康混合型（R/H）",
+        "summary": "你总体边界不错，但在受压或被触碰时，会更偏向撤退、封闭或冷处理。",
+        "actions": [
+          "保留防护，同时练习“表达边界而不是消失”",
+          "一句话沟通：我需要冷静一下，晚点再谈",
+          "在安全关系里练习一次“情绪+需求”的表达"
+        ]
+      },
+      "BALANCED": {
+        "name": "平衡探索型",
+        "summary": "你可能正处在边界重建期：有时想更照顾自己，有时又怕太自我；有时想更亲近，又怕被消耗。这很正常，代表你在学习新的方式。",
+        "actions": [
+          "先把边界练在小事上：时间/金钱/信息/情绪四个方面各选一个小动作坚持7天",
+          "做“我愿意清单”：列出你真正愿意的3件事",
+          "做“我不愿意清单”：列出你需要停止的1件事"
+        ]
+      }
+    }
+  },
+  "questions": [
+    { "id": 1, "text": "当我其实不想答应别人时，我通常会：", "options": { "A": "先答应下来，之后再想办法应付。", "B": "直接拒绝，但很少解释原因。", "C": "清楚表达“不愿意”，必要时简单说明我的考虑。" } },
+    { "id": 2, "text": "当身边的人遇到困难时，我更可能：", "options": { "A": "下意识觉得这是我的责任，想立刻帮他们解决。", "B": "告诉自己不要被牵扯，尽量不介入。", "C": "判断自己是否有能力和意愿，再决定是否提供帮助。" } },
+    { "id": 3, "text": "在关系中发生冲突或矛盾时：", "options": { "A": "我常被卷进去，即使事情与我关系不大。", "B": "我会迅速拉开距离，避免任何情绪纠缠。", "C": "我能区分哪些是我的部分，哪些是对方的部分。" } },
+    { "id": 4, "text": "当别人向我提出请求（借钱、帮忙、占用时间）时：", "options": { "A": "即使内心不舒服，也很难当场拒绝。", "B": "通常会直接拒绝，并尽量减少后续联系。", "C": "会根据实际情况回应，并清楚表达我的边界。" } },
+    { "id": 5, "text": "关于工作或责任感，我更像是：", "options": { "A": "常常承担过多，觉得“不做会内疚”。", "B": "把工作与生活完全切割，尽量不让任何人打扰我。", "C": "在责任与休息之间，尝试找到相对平衡的状态。" } },
+    { "id": 6, "text": "当别人对我有情绪（失落、愤怒、焦虑）时：", "options": { "A": "我很容易被影响，甚至替他们难受。", "B": "我会刻意保持冷静，提醒自己这与我无关。", "C": "我能共情对方，但不把情绪当成自己的责任。" } },
+    { "id": 7, "text": "当我拒绝别人后，我内心常见的感受是：", "options": { "A": "愧疚、不安，担心对方因此不喜欢我。", "B": "松一口气，并迅速筑起心理防线。", "C": "即使有些不舒服，也能接受这种不适感。" } },
+    { "id": 8, "text": "在分享个人信息或感受时，我通常：", "options": { "A": "容易说得太多，事后才意识到不想被知道。", "B": "很少透露，哪怕是亲近的人。", "C": "会选择合适的人和程度来分享。" } },
+    { "id": 9, "text": "我对他人的信任状态更接近：", "options": { "A": "很容易相信别人，也容易失望。", "B": "很难真正信任任何人。", "C": "信任是逐步建立的，会随着相处调整。" } },
+    { "id": 10, "text": "当别人没有按照我的期待行事时：", "options": { "A": "我会反思是不是自己做得不够好。", "B": "我会迅速抽离，不再对这段关系抱期待。", "C": "我能区分对方的选择与我的价值。" } },
+    { "id": 11, "text": "当别人拒绝我或无法满足我时：", "options": { "A": "我容易往心里去，觉得是不是自己不重要。", "B": "我会告诉自己不需要任何人。", "C": "我能理解这只是一次立场或能力的不同。" } },
+    { "id": 12, "text": "当我感到被冒犯或被不公平对待时：", "options": { "A": "我常忍下来，之后在心里反复消化。", "B": "我可能直接切断关系，不再沟通。", "C": "我能尝试表达感受，或为自己做出调整。" } },
+    { "id": 13, "text": "在“照顾自己”和“照顾他人”之间：", "options": { "A": "我更习惯优先考虑别人。", "B": "我更习惯只考虑自己。", "C": "我会提醒自己，两者都值得被看见。" } },
+    { "id": 14, "text": "当出现问题或冲突时：", "options": { "A": "我容易先道歉，哪怕不确定是不是我的责任。", "B": "我会坚持立场，很少反思自己的部分。", "C": "我能为自己的部分负责，也不替他人承担。" } },
+    { "id": 15, "text": "关于生活的忙碌与压力，我常有的状态是：", "options": { "A": "总觉得事情太多，时间和精力不够用。", "B": "尽量减少责任，避免被事情缠住。", "C": "会根据阶段调整投入与休息的比例。" } },
+    { "id": 16, "text": "当我有重要想法或需求时：", "options": { "A": "我常压下不说，担心带来麻烦。", "B": "我习惯自己消化，不指望他人理解。", "C": "我会选择合适的方式表达出来。" } }
+  ]
+};
+
+/** ========= 2) 应用逻辑（无需你改） ========= */
+const app = document.getElementById("app");
+document.getElementById("disclaimer").textContent = DATA.meta.disclaimer;
+
+const OPTION_TO_TYPE = DATA.scoring.optionToType;
+const QUESTIONS = DATA.questions.map(q => ({
+  id: q.id,
+  text: q.text,
+  A: q.options.A,
+  B: q.options.B,
+  C: q.options.C
+}));
+
+let idx = 0;
+const answers = {}; // { [id]: "A" | "B" | "C" }
+
+function percent() {
+  return Math.round((Object.keys(answers).length / QUESTIONS.length) * 100);
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+
+function renderIntro() {
+  app.innerHTML = `
+    <h1>${escapeHtml(DATA.meta.title)}</h1>
+    <p>${escapeHtml(DATA.meta.subtitle)}</p>
+    <div class="hr"></div>
+    <div class="row">
+      <button class="btn primary" id="startBtn">开始测试</button>
+      <button class="btn" id="demoFillBtn">快速填充示例（仅用于你测试页面）</button>
+    </div>
+  `;
+  document.getElementById("startBtn").onclick = () => { idx = 0; renderQuestion(); };
+  document.getElementById("demoFillBtn").onclick = () => {
+    QUESTIONS.forEach(q => answers[q.id] = ["A","B","C"][Math.floor(Math.random()*3)]);
+    renderResult();
+  };
+}
+
+function renderOption(q, letter, chosen) {
+  const txt = q[letter];
+  const checked = chosen === letter ? "checked" : "";
+  return `
+    <label class="opt" id="opt-${letter}">
+      <input type="radio" name="q${q.id}" ${checked} />
+      <div>
+        <div><b>选项 ${letter}</b></div>
+        <div style="color:var(--muted); line-height:1.5;">${escapeHtml(txt)}</div>
+      </div>
+    </label>
+  `;
+}
+
+function renderQuestion() {
+  const q = QUESTIONS[idx];
+  const chosen = answers[q.id];
+  const p = percent();
+
+  app.innerHTML = `
+    <div class="qhead">
+      <div class="badge">第 ${idx+1} / ${QUESTIONS.length} 题</div>
+      <div class="badge">${p}% 已完成</div>
+    </div>
+    <div class="progress" aria-label="progress"><div class="bar" style="width:${p}%"></div></div>
+
+    <div class="question">${escapeHtml(q.text)}</div>
+
+    ${renderOption(q, "A", chosen)}
+    ${renderOption(q, "B", chosen)}
+    ${renderOption(q, "C", chosen)}
+
+    <div class="hr"></div>
+    <div class="row">
+      <button class="btn" id="prevBtn" ${idx===0 ? "disabled":""}>上一题</button>
+      <button class="btn primary" id="nextBtn" ${!chosen ? "disabled":""}>${idx===QUESTIONS.length-1 ? "查看结果" : "下一题"}</button>
+    </div>
+  `;
+
+  ["A","B","C"].forEach(letter => {
+    document.getElementById(`opt-${letter}`).onclick = () => {
+      answers[q.id] = letter;
+      renderQuestion();
+    };
+  });
+
+  document.getElementById("prevBtn").onclick = () => { idx--; renderQuestion(); };
+  document.getElementById("nextBtn").onclick = () => {
+    if (idx === QUESTIONS.length - 1) renderResult();
+    else { idx++; renderQuestion(); }
+  };
+}
+
+function calcCounts() {
+  const counts = { P:0, R:0, H:0 };
+  for (const q of QUESTIONS) {
+    const pick = answers[q.id];
+    if (!pick) continue;
+    const type = OPTION_TO_TYPE[pick];
+    counts[type] += 1;
+  }
+  return counts;
+}
+
+function determineResult(counts) {
+  const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]); // [ [type,score], ...]
+  const [t1,s1] = entries[0];
+  const [t2,s2] = entries[1];
+  const [t3,s3] = entries[2];
+
+  // 平衡探索型：三类差距都 <= balancedThreshold
+  const thr = DATA.tieBreak.balancedThreshold ?? 1;
+  if (Math.abs(s1-s2) <= thr && Math.abs(s2-s3) <= thr) {
+    return { kind:"MIXED", code:"BALANCED", primary:null, secondary:null };
+  }
+
+  // 并列最高：混合型
+  const topTypes = entries.filter(([,s]) => s===s1).map(([t])=>t);
+  if (topTypes.length >= 2) {
+    const code = topTypes.sort().join(""); // e.g. "PR", "PH", "RH"
+    return { kind:"MIXED", code, primary:null, secondary:null };
+  }
+
+  // 单一主类型 + 副类型
+  return { kind:"SINGLE", primary:t1, secondary:t2, code:null };
+}
+
+function renderTypeCard(typeKey, n) {
+  const info = DATA.types[typeKey];
+  return `
+    <div class="card" style="padding:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
+        <div class="big">${escapeHtml(info.name)}</div>
+        <div class="badge">${n} 题</div>
+      </div>
+      <p><span class="pill">${escapeHtml(info.tagline)}</span></p>
+      <p>${escapeHtml(info.summary)}</p>
+      <div class="hr"></div>
+      <div>
+        <div class="small"><b>你可能会有：</b></div>
+        <ul style="margin:8px 0 0 18px; color:var(--muted); line-height:1.7;">
+          ${info.signs.map(x=>`<li>${escapeHtml(x)}</li>`).join("")}
+        </ul>
+      </div>
+      <div style="margin-top:10px;">
+        <div class="small"><b>给你的练习：</b></div>
+        <ul style="margin:8px 0 0 18px; color:var(--muted); line-height:1.7;">
+          ${info.actions.map(x=>`<li>${escapeHtml(x)}</li>`).join("")}
+        </ul>
+      </div>
+      <p style="margin-top:10px;"><b>下一步：</b> ${escapeHtml(info.nextStep)}</p>
+    </div>
+  `;
+}
+
+function renderMixedCard(code) {
+  const label = DATA.tieBreak.labels[code];
+  return `
+    <div class="card" style="padding:14px;">
+      <div class="big">${escapeHtml(label.name)}</div>
+      <p>${escapeHtml(label.summary)}</p>
+      <div class="hr"></div>
+      <div class="small"><b>你可以先做：</b></div>
+      <ul style="margin:8px 0 0 18px; color:var(--muted); line-height:1.7;">
+        ${label.actions.map(x=>`<li>${escapeHtml(x)}</li>`).join("")}
+      </ul>
+    </div>
+  `;
+}
+
+function renderResult() {
+  const counts = calcCounts();
+  const result = determineResult(counts);
+
+  const countText = `模糊(P)=${counts.P}，僵硬(R)=${counts.R}，健康(H)=${counts.H}`;
+
+  let headline = "";
+  let detailHTML = "";
+
+  if (result.kind === "SINGLE") {
+    headline = `你的主类型：${DATA.types[result.primary].name}`;
+    detailHTML = `
+      ${renderTypeCard(result.primary, counts[result.primary])}
+      <div class="card" style="padding:14px;">
+        <div class="small"><b>你的副类型：</b>${escapeHtml(DATA.types[result.secondary].name)}</div>
+        <p class="small">提示：副类型代表你在某些关系/情境下也会出现的边界方式。</p>
+      </div>
+      <div class="hr"></div>
+      <div class="small"><b>另外两类也会在你身上出现：</b></div>
+      <div class="result-grid" style="margin-top:10px;">
+        ${result.primary !== "P" ? renderTypeCard("P", counts.P) : ""}
+        ${result.primary !== "R" ? renderTypeCard("R", counts.R) : ""}
+        ${result.primary !== "H" ? renderTypeCard("H", counts.H) : ""}
+      </div>
+    `;
+  } else {
+    const code = result.code;
+    headline = `你的结果：${DATA.tieBreak.labels[code].name}`;
+    detailHTML = `
+      ${renderMixedCard(code)}
+      <div class="hr"></div>
+      <div class="small"><b>三类计数：</b>${escapeHtml(countText)}</div>
+      <div class="hr"></div>
+      <div class="small"><b>三种边界方式的参考解释：</b></div>
+      <div class="result-grid" style="margin-top:10px;">
+        ${renderTypeCard("P", counts.P)}
+        ${renderTypeCard("R", counts.R)}
+        ${renderTypeCard("H", counts.H)}
+      </div>
+    `;
+  }
+
+  app.innerHTML = `
+    <h1>你的测试结果</h1>
+    <p class="big">${escapeHtml(headline)}</p>
+    <p class="small">三类计数：${escapeHtml(countText)}</p>
+    <div class="hr"></div>
+    ${detailHTML}
+    <div class="hr"></div>
+    <div class="row">
+      <button class="btn" id="restartBtn">重新测试</button>
+      <button class="btn primary" id="copyBtn">复制结果摘要</button>
+    </div>
+  `;
+
+  document.getElementById("restartBtn").onclick = () => {
+    for (const k in answers) delete answers[k];
+    idx = 0;
+    renderIntro();
+  };
+
+  document.getElementById("copyBtn").onclick = async () => {
+    const summary = `边界感测试结果：${countText}。`;
+    try{
+      await navigator.clipboard.writeText(summary);
+      alert("已复制到剪贴板");
+    } catch(e){
+      alert("复制失败：你可以截图保存。");
+    }
+  };
+}
+
+renderIntro();
+</script>
+</body>
+</html>
